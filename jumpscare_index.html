@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#000000" />
+  <title>Doğrulama — dokun ve devam et</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body { background: #000; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+
+    /* Video tam ekran doldursun */
+    #scare {
+      position: fixed; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+      background: #000;
+    }
+
+    /* Üstte tıklama ekranı */
+    #gate {
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: radial-gradient(120vmax 120vmax at 50% 50%, rgba(255,255,255,0.0), rgba(0,0,0,0.92)), #000;
+      -webkit-tap-highlight-color: transparent;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .card { 
+      display: grid; gap: .6rem; place-items: center;
+      padding: 1.4rem 1.6rem; text-align: center;
+      border-radius: 1.25rem; backdrop-filter: blur(6px);
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.14);
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      max-width: min(92vw, 520px);
+    }
+
+    .title { font-size: clamp(1.3rem, 2.8vw + .9rem, 2.1rem); font-weight: 800; letter-spacing: .2px; }
+    .hint { opacity: .8; font-size: .95rem; }
+    .cta  { margin-top: .2rem; padding: .72rem 1.1rem; border-radius: .9rem; border: 1px solid rgba(255,255,255,.2);
+            background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+            font-weight: 700; }
+  </style>
+</head>
+<body>
+
+  <!--
+    ÖNEMLİ: Bu dosyayı index.html olarak kaydedin ve aynı klasöre 'jumpscare.mp4' dosyanızı yükleyin.
+    Videonuzun boyutu 3–10 MB civarı olursa telefonda çok hızlı açılır (H.264, 720p, 2–4 Mbps iyi ayardır).
+  -->
+
+  <video id="scare" preload="auto" playsinline webkit-playsinline src="jumpscare.mp4"></video>
+
+  <div id="gate">
+    <div class="card">
+      <div class="title">Devam etmek için dokun</div>
+      <div class="hint">Kısa bir doğrulama gerekli. Sesinizin açık olduğundan emin olun 🔊</div>
+      <div class="cta">Dokun</div>
+    </div>
+  </div>
+
+  <script>
+    const gate = document.getElementById('gate');
+    const v = document.getElementById('scare');
+
+    // Güvenli başlatma: kullanıcı dokununca tam ekran + sesli oynat
+    async function start() {
+      gate.style.display = 'none';
+
+      try {
+        // iOS/Android tam ekran isteği (başarısız olursa sorun değil)
+        if (v.requestFullscreen) v.requestFullscreen().catch(()=>{});
+        else if (v.webkitRequestFullscreen) v.webkitRequestFullscreen();
+
+        v.currentTime = 0;
+        v.loop = false;            // tek seferlik
+        v.muted = false;           // ses açık
+        v.volume = 1.0;
+
+        await v.play();
+        if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
+      } catch (err) {
+        // Nadiren otomatik çalma başarısız olabilir; kullanıcıya ipucu göster
+        alert('Video otomatik oynatılamadı. Lütfen sesi açıp bir kez daha dokunun.');
+        gate.style.display = 'flex';
+      }
+    }
+
+    // İlk dokunuşu yakala
+    gate.addEventListener('click', start, { once: true });
+    gate.addEventListener('touchstart', (e) => { e.preventDefault(); start(); }, { passive: false, once: true });
+
+    // Opsiyonel: sayfa açılır açılmaz sessiz dene; başarılı olursa 300 ms sonra sesi açmayı dene
+    // (Tüm tarayıcılarda garanti değil, ama bazı cihazlarda direkt patlar.)
+    (async () => {
+      try {
+        v.muted = true; await v.play();
+        setTimeout(() => { try { v.muted = false; v.volume = 1; } catch(_){} }, 300);
+      } catch(_) {
+        // Sessiz giriş başarısız ise kapı ekranı kalır; kullanıcı dokununca çalışır.
+      }
+    })();
+  </script>
+</body>
+</html>
